@@ -205,7 +205,9 @@ models <- list(
 # for train, test and random effects
 # Plots saved to ./plots/
 {
-  bestformula <- "num_clicks ~ uLSC + fLSC + uInt + fInt + uLSC:fLSC + uInt:fInt + (1 | Subject)"
+  # bestformula <- "num_clicks ~ uLSC + fLSC + uInt + fInt + uLSC:fLSC + uInt:fInt + (1 | Subject)"
+  bestformula <- "num_clicks ~ fLSC + fInt + uLSC:fLSC + uInt:fInt + (1 | Subject)"
+
 
   f <- lmer(bestformula, data = data,
   control = lmerControl(optimizer = "nloptwrap"))
@@ -232,10 +234,16 @@ models <- list(
 
 # plot interactions - Figure 3c,d
 {
+  # mean_value <- mean(data$uLSC, na.rm = TRUE)
+  # sd_value <- sd(data$uLSC, na.rm = TRUE)
+  # modx_values <- c(mean_value - 2 * sd_value, mean_value, mean_value + 2 * sd_value)
   p <- interact_plot(f,
-      pred = fLSC, modx = uLSC, interval = TRUE,
+      pred = fLSC, modx = uLSC, modx.values = c(-2, 0, 2), modx.labels = c("-2SD", "Mean", "+2SD"),
+      interval = TRUE,
       x.label = "fLSC", y.label = "Number of Clicks",
-      legend.main = "uLSC", colors = "seagreen"
+      legend.main = "uLSC", colors = "seagreen",
+      xlim = c(min(data$fLSC), max(data$fLSC)),
+      ylim = c(min(data$num_clicks), max(data$num_clicks))
   ) + theme(
       axis.title = element_text(family = "serif", size = 44),
       axis.text = element_text(family = "serif", size = 26),
@@ -247,20 +255,20 @@ models <- list(
   # Figure 3c
   ggsave(filename = "plots/uLSC_fLSC_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
 
-  p <- interact_plot(f,
-      pred = fInt, modx = uInt, interval = TRUE,
-      x.label = "fInt", y.label = "Number of Clicks",
-      legend.main = "uInt", colors = "seagreen"
-  ) + theme(
-      axis.title = element_text(family = "serif", size = 44),
-      axis.text = element_text(family = "serif", size = 26),
-      legend.text = element_text(family = "serif", size = 30),
-      legend.title = element_text(family = "serif", size = 44),
-      strip.text = element_text(family = "serif")
-  ) + scale_y_continuous(breaks = seq(0, 50, by = 20), limits = c(0, 50)) + scale_x_continuous(breaks = seq(-2, 8, by = 2), limits = c(-2, 8))
+  # p <- interact_plot(f,
+  #     pred = fInt, modx = uInt, interval = TRUE,
+  #     x.label = "fInt", y.label = "Number of Clicks",
+  #     legend.main = "uInt", colors = "seagreen"
+  # ) + theme(
+  #     axis.title = element_text(family = "serif", size = 44),
+  #     axis.text = element_text(family = "serif", size = 26),
+  #     legend.text = element_text(family = "serif", size = 30),
+  #     legend.title = element_text(family = "serif", size = 44),
+  #     strip.text = element_text(family = "serif")
+  # ) + scale_y_continuous(breaks = seq(0, 50, by = 20), limits = c(0, 50)) + scale_x_continuous(breaks = seq(-2, 8, by = 2), limits = c(-2, 8))
 
-  # Figure 3d
-  ggsave(filename = "plots/uInt_fInt_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
+  # # Figure 3d
+  # ggsave(filename = "plots/uInt_fInt_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
 }
 
 # Find extrema patterns

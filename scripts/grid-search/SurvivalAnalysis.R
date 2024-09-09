@@ -36,7 +36,7 @@
 # Setup
 {
     # Read data
-    data = read.csv("scripts/grid-search/utils/click_data.csv")
+    data = read.csv("../../data/grid-search/click_data.csv")
     # data = read.csv("utils/subject_click_info_coxreg_data23.csv")
 
     # Scale all variables in the data
@@ -47,31 +47,22 @@
     data$Subject <- factor(data$Subject)
     data$click_id <- as.numeric(data$click_id)
     data$click_id_plus1 <- as.numeric(data$click_id + 1)
-    
-    # data$uLSC <- my_scale(data$underlying_LSC)
     data$uLSC <- my_scale(data$underlying_SC)
-    data$uLSCsq <- data$uLSC ^ 2
-
-    # data$vLSC <- my_scale(data$current_LSC)
-    data$vLSC <- my_scale(data$current_SC)
-    data$vLSCsq <- data$vLSC ^ 2
-    
+    data$uLSCsq <- my_scale(data$underlying_SC ^ 2)
     data$uInt <- my_scale(data$underlying_intricacy)
-    data$uIntsq <- data$uInt ^ 2
-
-    data$vInt <- my_scale(data$current_intricacy)
-    data$vIntsq <- data$vInt ^ 2
-
-    # data$chLSC <- my_scale(data$current_change_in_LSC)
+    data$uIntsq <- my_scale(data$underlying_intricacy ^ 2)
+    data$cLSC <- my_scale(data$current_SC)
+    data$cLSCsq <- my_scale(data$current_SC ^ 2)
+    data$cInt <- my_scale(data$current_intricacy)
+    data$cIntsq <- my_scale(data$current_intricacy ^ 2)
     data$chLSC <- my_scale(data$current_change_in_SC)
     data$chInt <- my_scale(data$current_change_in_intricacy)
-    # data$avgchLSC <- my_scale(data$avg_change_in_LSC)
     data$avgchLSC <- my_scale(data$avg_change_in_SC)
     data$avgchInt <- my_scale(data$avg_change_in_intricacy)
 }
 
 {
-    selected_data <- data[, c("uLSC", "fLSC", "uInt", "fInt", "uLSCsq", "fLSCsq", "uIntsq", "fIntsq", "chLSC", "chInt", "avgchLSC", "avgchInt")]
+    selected_data <- data[, c("uLSC", "cLSC", "uInt", "cInt", "uLSCsq", "cLSCsq", "uIntsq", "cIntsq", "chLSC", "chInt", "avgchLSC", "avgchInt")]
     correlation_matrix <- cor(selected_data)
     colnames(correlation_matrix) <- c("uLSC", "fLSC", "uInt", "fInt", "uLSCsq", "fLSCsq", "uIntsq", "fIntsq", "chLSC", "chInt", "avgchLSC", "avgchInt") # Rename columns
     rownames(correlation_matrix) <- c("uLSC", "fLSC", "uInt", "fInt", "uLSCsq", "fLSCsq", "uIntsq", "fIntsq", "chLSC", "chInt", "avgchLSC", "avgchInt") # Rename columns
@@ -135,40 +126,40 @@ models <- list(
     "Subject",
     
     "uLSC + uInt + Subject",
-    "vLSC + vInt + Subject",
-    "uLSC + vLSC + Subject",
-    "uInt + vInt + Subject",
+    "cLSC + cInt + Subject",
+    "uLSC + cLSC + Subject",
+    "uInt + cInt + Subject",
 
-    "uLSC + uInt + vLSC + vInt + Subject",
+    "uLSC + uInt + cLSC + cInt + Subject",
     
-    "uLSC * vLSC + Subject",
-    "uInt * vInt + Subject",
+    "uLSC * cLSC + Subject",
+    "uInt * cInt + Subject",
     "uLSC * uInt + Subject",
-    "vLSC * vInt + Subject",
+    "cLSC * cInt + Subject",
     
-    "vLSC + vInt + uLSC:vLSC + uInt:vInt + Subject",
-    "uLSC * vLSC + uInt * vInt + Subject",  # best
-    "uLSC * uInt + vLSC * vInt + Subject",
-    "uLSC + uInt + vLSC + vInt + uLSC:vInt + vLSC:uInt + Subject",
-    "uLSC + vLSC + uInt + vInt + uLSC:vLSC + uInt:vInt + uLSC:uInt + vLSC:vInt + uLSC:vInt + vLSC:uInt + Subject",
+    "cLSC + cInt + uLSC:cLSC + uInt:cInt + Subject",
+    "uLSC * cLSC + uInt * cInt + Subject",  # best
+    "uLSC * uInt + cLSC * cInt + Subject",
+    "uLSC + uInt + cLSC + cInt + uLSC:cInt + cLSC:uInt + Subject",
+    "uLSC + cLSC + uInt + cInt + uLSC:cLSC + uInt:cInt + uLSC:uInt + cLSC:cInt + uLSC:cInt + cLSC:uInt + Subject",
 
     # Supplementary analysis
     
     # change in complexity
     "chLSC + chInt + Subject",
     "avgchLSC + avgchInt + Subject",
-    "uLSC + uInt + vLSC + vInt + chLSC + chInt + Subject",
-    "uLSC + uInt + vLSC + vInt + avgchLSC + avgchInt + Subject",
+    "uLSC + uInt + cLSC + cInt + chLSC + chInt + Subject",
+    "uLSC + uInt + cLSC + cInt + avgchLSC + avgchInt + Subject",
 
     # quadratic effects
-    "uLSCsq + uIntsq + vLSCsq + vIntsq + Subject",
-    "uLSCsq + vLSCsq + uIntsq + vIntsq + uLSC:vLSC + uInt:vInt + Subject",
-    "uLSCsq + uIntsq + vLSCsq + vIntsq + uLSC:vLSC + uInt:vInt + Subject", # L^2 + I^2
-    "(uLSCsq + vLSCsq + uLSC:vLSC) + (uIntsq + vIntsq + uInt:vInt) + (uLSC + vLSC):(uInt + vInt) + Subject", # (L + I)^2
-    "uLSC + vLSC + uInt + vInt + uLSCsq + uIntsq + vLSCsq + vIntsq + Subject", # L + I + L^2 + I^2 - interactions
-    "uLSC + vLSC + uInt + vInt + uLSCsq + uIntsq + vLSCsq + vIntsq + uLSC:vLSC + uInt:vInt + Subject", # best = L + I + L^2 + I^2
-    "uLSC + vLSC + uInt + vInt + uLSCsq + uIntsq + vLSCsq + vIntsq + uLSC:vLSC + uInt:vInt + uLSC:uInt + vLSC:vInt + Subject",
-    "uLSC + vLSC + uInt + vInt + uLSCsq + uIntsq + vLSCsq + vIntsq + uLSC:vLSC + uInt:vInt + uLSC:uInt + vLSC:vInt + uLSC:vInt + uInt:vLSC + Subject" # L + I + (L + I)^2
+    "uLSCsq + uIntsq + cLSCsq + cIntsq + Subject",
+    "uLSCsq + cLSCsq + uIntsq + cIntsq + uLSC:cLSC + uInt:cInt + Subject",
+    "uLSCsq + uIntsq + cLSCsq + cIntsq + uLSC:cLSC + uInt:cInt + Subject", # L^2 + I^2
+    "(uLSCsq + cLSCsq + uLSC:cLSC) + (uIntsq + cIntsq + uInt:cInt) + (uLSC + cLSC):(uInt + cInt) + Subject", # (L + I)^2
+    "uLSC + cLSC + uInt + cInt + uLSCsq + uIntsq + cLSCsq + cIntsq + Subject", # L + I + L^2 + I^2 - interactions
+    "uLSC + cLSC + uInt + cInt + uLSCsq + uIntsq + cLSCsq + cIntsq + uLSC:cLSC + uInt:cInt + Subject", # best = L + I + L^2 + I^2
+    "uLSC + cLSC + uInt + cInt + uLSCsq + uIntsq + cLSCsq + cIntsq + uLSC:cLSC + uInt:cInt + uLSC:uInt + cLSC:cInt + Subject",
+    "uLSC + cLSC + uInt + cInt + uLSCsq + uIntsq + cLSCsq + cIntsq + uLSC:cLSC + uInt:cInt + uLSC:uInt + cLSC:cInt + uLSC:cInt + uInt:cLSC + Subject" # L + I + (L + I)^2
 )
 
 # Save all results to model_fits/Table_1_survival.csv
@@ -213,13 +204,15 @@ models <- list(
         df[nrow(df) + 1, ] <- c(id, noquote(fullformula), c(mean(AICs), mean(BICs), mean(concordances_train), mean(concordances_test), max(logrankp), max(likratiop)))
     }
 
-    write.csv(df, "scripts/grid-search/model_fits/Table_1_survival.csv", row.names = FALSE)
+    write.csv(df, "model_fits/Table_1_survival.csv", row.names = FALSE)
 }
 
 
 # Save fixed effects to model_fits/ - Table 2
 {
-    bestformula <- as.formula("Surv(click_id, move_on) ~ uLSC * vLSC + uInt * vInt + Subject") # Subject excluded for reliability of estimates 
+    # bestformula <- as.formula("Surv(click_id, move_on) ~ uLSC * cLSC + uInt * cInt + Subject") # Subject excluded for reliability of estimates 
+
+    bestformula <- as.formula("Surv(click_id, move_on) ~ cLSC + cInt + uLSC:cLSC + uInt:cInt + Subject")
 
     model <- coxph(bestformula, data = data)
 
@@ -240,49 +233,49 @@ models <- list(
     combined_data <- data.frame(Variable = coef_names, Coefficients = coefficients, ExpCoefficients = exp_coefficients, Significance = signif_levels)
 
     # Write the data frame to a CSV file
-    write.csv(combined_data, file = "scripts/grid-search/model_fits/Table_2_coeff_survival.csv", row.names = FALSE)
+    write.csv(combined_data, file = "model_fits/Table_2_coeff_survival.csv", row.names = FALSE)
 }
 
 
 # Plot survival curves keeping all but one or two (for interactions) variables constant - Figure 2
 {
-    # vLSC manipulation - Figure 2a
+    # cLSC manipulation - Figure 2a
     newdata <- data.frame(
-        vLSC = seq(mean(data$vLSC, na.rm = TRUE) - 2*sd(data$vLSC, na.rm = TRUE), mean(data$vLSC, na.rm = TRUE) + 2*sd(data$vLSC, na.rm = TRUE), length.out = 3),
-        uLSC = mean(data$uLSC, na.rm = TRUE),
-        uInt = mean(data$uInt, na.rm = TRUE),
-        vInt = mean(data$vInt, na.rm = TRUE),
+        cLSC = seq(mean(data$cLSC, na.rm = TRUE) - 2*sd(data$cLSC, na.rm = TRUE), mean(data$cLSC, na.rm = TRUE) + 2*sd(data$cLSC, na.rm = TRUE), length.out = 3),
+        # uLSC = mean(data$uLSC, na.rm = TRUE),
+        # uInt = mean(data$uInt, na.rm = TRUE),
+        cInt = mean(data$cInt, na.rm = TRUE),
         Subject = factor(21)
         )
-    var <- "vLSC"
+    var <- "cLSC"
     filename <- paste0(var, "_survival_curve")
     survival_prob(model, newdata, filename, var, c("- 2SD", "mean", "+ 2SD"), c("salmon", "red", "darkred"))
 
-    # vInt manipulation - not reported in paper
+    # cInt manipulation - not reported in paper
     newdata <- data.frame(
-        vInt = seq(mean(data$vInt, na.rm = TRUE) - 2*sd(data$vInt, na.rm = TRUE), mean(data$vInt, na.rm = TRUE) + 2*sd(data$vInt, na.rm = TRUE), length.out = 3),
-        uLSC = mean(data$uLSC, na.rm = TRUE),
-        vLSC = mean(data$vLSC, na.rm = TRUE),
-        uInt = mean(data$uInt, na.rm = TRUE),
+        cInt = seq(mean(data$cInt, na.rm = TRUE) - 2*sd(data$cInt, na.rm = TRUE), mean(data$cInt, na.rm = TRUE) + 2*sd(data$cInt, na.rm = TRUE), length.out = 3),
+        # uLSC = mean(data$uLSC, na.rm = TRUE),
+        cLSC = mean(data$cLSC, na.rm = TRUE),
+        # uInt = mean(data$uInt, na.rm = TRUE),
         Subject = factor(21)
         )
-    var <- "vInt"
+    var <- "cInt"
     filename <- paste0(var, "_survival_curve")
     # survival_prob(model, newdata, filename, var, c("- 2SD", "mean", "+ 2SD"), c("gold", "darkorange", "chocolate"))
     survival_prob(model, newdata, filename, var, c("- 2SD", "mean", "+ 2SD"), c("tan", "sienna", "brown"))
 
 
-    # uLSC x vLSC manipulation - Figure 2c
+    # uLSC x cLSC manipulation - Figure 2c
     v1 <- seq(mean(data$uLSC, na.rm = TRUE) - 2*sd(data$uLSC, na.rm = TRUE), mean(data$uLSC, na.rm = TRUE) + 2*sd(data$uLSC, na.rm = TRUE), length.out = 2)  # Values of uLSC for the three scenarios
-    v2 <- seq(mean(data$vLSC, na.rm = TRUE) - 2*sd(data$vLSC, na.rm = TRUE), mean(data$vLSC, na.rm = TRUE) + 2*sd(data$vLSC, na.rm = TRUE), length.out = 2)   # Values of vLSC for the three scenarios
+    v2 <- seq(mean(data$cLSC, na.rm = TRUE) - 2*sd(data$cLSC, na.rm = TRUE), mean(data$cLSC, na.rm = TRUE) + 2*sd(data$cLSC, na.rm = TRUE), length.out = 2)   # Values of cLSC for the three scenarios
     newdata <- expand.grid(
         uLSC = v1,
-        vLSC = v2
+        cLSC = v2
     )
     newdata$uInt <- mean(data$uInt, na.rm = TRUE)
-    newdata$vInt <- mean(data$vInt, na.rm = TRUE)
+    newdata$cInt <- mean(data$cInt, na.rm = TRUE)
     newdata$Subject <- factor(21)
-    var <- "uLSC:vLSC"
+    var <- "uLSC:cLSC"
     filename <- paste0(var, "_survival_curve")
     survival_prob(model, newdata, filename, var, c("1", "2", "3", "4"), c("lightgreen", "darkseagreen", "darkcyan", "slategray"))
 
@@ -293,10 +286,10 @@ models <- list(
     sampled_subjects <- unique_subjects[indices]
     newdata_list <- lapply(sampled_subjects, function(subj) {
     data.frame(
-        uLSC = mean(data$uLSC, na.rm = TRUE),
-        vLSC = mean(data$vLSC, na.rm = TRUE),
-        uInt = mean(data$uInt, na.rm = TRUE),
-        vInt = mean(data$vInt, na.rm = TRUE),
+        # uLSC = mean(data$uLSC, na.rm = TRUE),
+        cLSC = mean(data$cLSC, na.rm = TRUE),
+        # uInt = mean(data$uInt, na.rm = TRUE),
+        cInt = mean(data$cInt, na.rm = TRUE),
         Subject = factor(subj, levels = levels(unique_subjects[indices]))
     )
     })
