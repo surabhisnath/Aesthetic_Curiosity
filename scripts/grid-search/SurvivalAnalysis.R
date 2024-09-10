@@ -36,7 +36,7 @@
 # Setup
 {
     # Read data
-    data = read.csv("../../data/grid-search/click_data.csv")
+    data = read.csv("../../csvs/grid-search/click_data_withoutliers.csv")
     # data = read.csv("utils/subject_click_info_coxreg_data23.csv")
 
     # Scale all variables in the data
@@ -46,7 +46,7 @@
 
     data$Subject <- factor(data$Subject)
     data$click_id <- as.numeric(data$click_id)
-    data$click_id_plus1 <- as.numeric(data$click_id + 1)
+    data$click_id_minus1 <- as.numeric(data$click_id - 1)
     data$uLSC <- my_scale(data$underlying_SC)
     data$uLSCsq <- my_scale(data$underlying_SC ^ 2)
     data$uInt <- my_scale(data$underlying_intricacy)
@@ -172,7 +172,7 @@ models <- list(
     for(formula in models) 
     {
         id <- id + 1
-        fullformula <- paste("Surv(click_id, move_on) ~ ", formula)
+        fullformula <- paste("Surv(click_id_minus1, click_id, move_on) ~ ", formula)
         formula <- as.formula(fullformula)
         
         # calcultate the following metrics

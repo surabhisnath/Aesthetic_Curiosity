@@ -101,7 +101,8 @@ def calculate_local_spatial_complexity(grid, grid_size):
         muG += G
         Gs.append(G)
 
-    local_spatial_complexity = muG / (len(dirns) * len(states) ** 2)  # muG/(len(dirns)
+    # local_spatial_complexity = muG / (len(dirns) * len(states) ** 2)  # muG/(len(dirns)
+    local_spatial_complexity = muG / len(dirns)
 
     return local_spatial_complexity
 
