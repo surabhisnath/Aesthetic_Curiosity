@@ -34,7 +34,7 @@
 # Setup
 {
   # Read data
-  data <- read.csv("../../csvs/grid-search/grid_data_reevaluatedforreproduction_withoutoutliers.csv")
+  data <- read.csv("../../csvs/grid-search/grid_data_reevaluatedforreproduction.csv")
 
   # Scale all variables in the data
   my_scale <- function(x) {
@@ -46,57 +46,25 @@
   data$pattern <- factor(data$pattern_id)
 
   data$uLSC <- my_scale(data$uLSC)
-  data$uLSCsq <- my_scale(data$uLSC ^ 2)
-  data$uLSCdiff <- my_scale(data$uLSC_diff)
-  data$uLSCperm <- my_scale(data$uLSC_permutation)
-  data$uLSCrandom <- my_scale(data$uLSC_random)
+  data$uLSCr <- my_scale(data$uLSCr)
+  data$uLSCp <- my_scale(data$uLSCp)
+  data$uLSCdiffr <- my_scale(data$uLSCdiffr)
+  data$uLSCdiffp <- my_scale(data$uLSCdiffp)
   
   data$uInt <- my_scale(data$uInt)
-  data$uIntsq <- my_scale(data$uInt ^ 2)
-  data$uIntdiff <- my_scale(data$uInt_diff)
-  data$uIntperm <- my_scale(data$uInt_permutation)
-  data$uIntrandom <- my_scale(data$uInt_random)
+  data$uIntr <- my_scale(data$uIntr)
+  data$uIntp <- my_scale(data$uIntp)
+  data$uIntdiffr <- my_scale(data$uIntdiffr)
+  data$uIntdiffp <- my_scale(data$uIntdiffp)
   
-  data$fLSCrandom <- my_scale(data$fLSC_random)
-  data$fLSCpermutation <- my_scale(data$fLSC_permutation)
-  data$fLSCpermutationfull <- my_scale(data$fLSC_permutation_full)
-  data$fLSCpermutationsq <- my_scale(data$fLSC_permutation ^ 2)
-  data$fIntrandom <- my_scale(data$fInt_random)
-  data$fIntpermutation <- my_scale(data$fInt_permutation)
-  data$fIntpermutationfull <- my_scale(data$fInt_permutation_full)
-  data$fIntpermutationsq <- my_scale(data$fInt_permutation ^ 2)
+  data$fLSCr <- my_scale(data$fLSCr)
+  data$fLSCpold <- my_scale(data$fLSCpold)
+  data$fLSCp <- my_scale(data$fLSCp)
+  
+  data$fIntr <- my_scale(data$fIntr)
+  data$fIntpold <- my_scale(data$fIntpold)
+  data$fIntp <- my_scale(data$fIntp)
 }
-
-# Make correlation plot - not used in paper
-# {
-#     selected_data <- data[, c("num_clicks", "uLSC", "uLSCrandom", "fLSCpermutation", "uInt", "uIntrandom", "fIntpermutation", "uLSCsq", "fLSCpermutationsq", "uIntsq", "fIntpermutationsq")]
-#     correlation_matrix <- cor(selected_data)
-#     colnames(correlation_matrix) <- c("num_clicks", "uLSC", "uLSCrandom", "fLSCpermutation", "uInt", "uIntrandom", "fIntpermutation", "uLSCsq", "fLSCpermutationsq", "uIntsq", "fIntpermutationsq") # Rename columns
-#     rownames(correlation_matrix) <- c("num_clicks", "uLSC", "uLSCrandom", "fLSCpermutation", "uInt", "uIntrandom", "fIntpermutation", "uLSCsq", "fLSCpermutationsq", "uIntsq", "fIntpermutationsq") # Rename columns
-#     correlation_matrix[lower.tri(correlation_matrix)] <- NA
-#     pdf(file = "plots/grid_level_correlations.pdf", width = 12, height = 12)
-#     par(mar=c(7,7,2,2), cex = 1.3, family="serif")
-
-#     # Plot the heatmap
-#     image(1:ncol(correlation_matrix), 1:nrow(correlation_matrix), t(correlation_matrix), 
-#         col = colorRampPalette(c("blue", "white", "red"))(20), axes = FALSE, xlab = "", ylab = "")
-
-#     # Add text annotations for the correlation values
-#     for (i in 1:nrow(correlation_matrix)) {
-#         for (j in 1:ncol(correlation_matrix)) {
-#             if (!is.na(correlation_matrix[i, j])) {
-#                 text(j, i, round(correlation_matrix[i, j], 2), cex = 1.3)
-#             }
-#         }
-#     }
-
-#     # Customize the row and column names
-#     axis(1, at = 1:ncol(correlation_matrix), labels = colnames(correlation_matrix), las = 2, cex.axis = 1.4, family = "serif")
-#     axis(2, at = 1:nrow(correlation_matrix), labels = rownames(correlation_matrix), las = 2, cex.axis = 1.4, family = "serif")
-
-#     # save correlation plot
-#     dev.off()
-# }
 
 # Split the data into 3 stratified folds
 {
@@ -129,64 +97,79 @@
 models <- list(
   "1 + (1 | pid)",
   
-  "1 + ((uLSC + uInt + fLSCpermutationfull + fIntpermutationfull) | pid)",
+  # "1 + ((uLSC + uInt + fLSCp + fIntp) | pid)",
 
-  "uLSC + (1 | pid)",
-  "uLSCdiff + (1 | pid)",
+  # "uLSC + (1 | pid)",
+  # "uLSCr + (1 | pid)",
+  # "uLSCp + (1 | pid)",
+  # "uLSCdiffr + (1 | pid)",
+  # "uLSCdiffp + (1 | pid)",
 
-  "uInt + (1 | pid)",
-  "uIntdiff + (1 | pid)",
+  # "uInt + (1 | pid)",
+  # "uIntr + (1 | pid)",
+  # "uIntp + (1 | pid)",
+  # "uIntdiffr + (1 | pid)",
+  # "uIntdiffp + (1 | pid)",
 
-  "fLSCpermutationfull + (1 | pid)",
-  "fIntpermutationfull + (1 | pid)",
+  # "fLSCpold + (1 | pid)",
+  # "fLSCp + (1 | pid)",
+  # "fLSCr + (1 | pid)",
 
-  "uLSC + uInt + (1 | pid)",
-  "fLSCpermutationfull + fIntpermutationfull + (1 | pid)",
-  "uLSC + fLSCpermutationfull + (1 | pid)",
-  "uInt + fIntpermutationfull + (1 | pid)",
+  # "fIntpold + (1 | pid)",
+  # "fIntp + (1 | pid)",
+  # "fIntr + (1 | pid)",
 
-  "uLSC + uInt + fLSCpermutationfull + fIntpermutationfull + (1 | pid)",
+  # "uLSC + uInt + (1 | pid)",
+  # "fLSCp + fIntp + (1 | pid)",
+  # "uLSC + fLSCp + (1 | pid)",
+  # "uInt + fIntp + (1 | pid)",
+
+  # "uLSC + uInt + fLSCp + fIntp + (1 | pid)",
   
-  "uLSC * fLSCpermutationfull + (1 | pid)",
-  "uInt * fIntpermutationfull + (1 | pid)",
-  "uLSC * uInt + (1 | pid)",
-  "fLSCpermutationfull * fIntpermutationfull + (1 | pid)",
+  # "uLSC * fLSCp + (1 | pid)",
+  # "uInt * fIntp + (1 | pid)",
+  # "uLSC * uInt + (1 | pid)",
+  # "fLSCp * fIntp + (1 | pid)",
   
-  "uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + (1 | pid)",
-  "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + (1 | pid)",    # best
-  "fLSCpermutationfull + fIntpermutationfull + uLSCdiff:fLSCpermutationfull + uIntdiff:fIntpermutationfull + (1 | pid)",    # best
-  "fLSCpermutationfull + fIntpermutationfull + uLSCperm:fLSCpermutationfull + uIntperm:fIntpermutationfull + (1 | pid)",    # best
-  "fLSCpermutationfull + fIntpermutationfull + uLSCrandom:fLSCpermutationfull + uIntrandom:fIntpermutationfull + (1 | pid)",    # best
+  "fLSCpold + fIntpold + uLSC:fLSCpold + uInt:fIntpold + (1 | pid)",
+  "fLSCpold + fIntpold + uLSCp:fLSCpold + uIntp:fIntpold + (1 | pid)",
+  "fLSCpold + fIntpold + uLSCr:fLSCpold + uIntr:fIntpold + (1 | pid)",
+  "fLSCpold + fIntpold + uLSCdiffp:fLSCpold + uIntdiffp:fIntpold + (1 | pid)",
+  "fLSCpold + fIntpold + uLSCdiffr:fLSCpold + uIntdiffr:fIntpold + (1 | pid)",
 
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + ((fLSCpermutationfull + uLSC + fIntpermutationfull + uInt) | pid)",
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + ((fLSCpermutationfull + fIntpermutationfull) | pid)",
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + ((uLSC + uInt) | pid)",
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + (fLSCpermutationfull | pid)",
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + (uLSC | pid)",
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + (fIntpermutationfull | pid)",
-  # "fLSCpermutationfull + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + (uInt | pid)",
-  "uLSC * fLSCpermutationfull + uInt * fIntpermutationfull + (1 | pid)",
-  "uLSC * uInt + fLSCpermutationfull * fIntpermutationfull + (1 | pid)",
-  "uLSC + uInt + fLSCpermutationfull + fIntpermutationfull + uLSC:fIntpermutationfull + fLSCpermutationfull:uInt + (1 | pid)",
-  "uLSC + fLSCpermutationfull + uInt + fIntpermutationfull + uLSC:fLSCpermutationfull + uInt:fIntpermutationfull + uLSC:uInt + fLSCpermutationfull:fIntpermutationfull + uLSC:fIntpermutationfull + fLSCpermutation:uInt + (1 | pid)",
+  "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (1 | pid)",
+  "fLSCp + fIntp + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
+  "fLSCp + fIntp + uLSCr:fLSCp + uIntr:fIntp + (1 | pid)",
+  "fLSCp + fIntp + uLSCdiffp:fLSCp + uIntdiffp:fIntp + (1 | pid)",
+  "fLSCp + fIntp + uLSCdiffr:fLSCp + uIntdiffr:fIntp + (1 | pid)",
+
+  "fLSCr + fIntr + uLSC:fLSCr + uInt:fIntr + (1 | pid)",
+  "fLSCr + fIntr + uLSCp:fLSCr + uIntp:fIntr + (1 | pid)",
+  "fLSCr + fIntr + uLSCr:fLSCr + uIntr:fIntr + (1 | pid)",
+  "fLSCr + fIntr + uLSCdiffp:fLSCr + uIntdiffp:fIntr + (1 | pid)",
+  "fLSCr + fIntr + uLSCdiffr:fLSCr + uIntdiffr:fIntr + (1 | pid)"
+
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + ((fLSCp + uLSC + fIntp + uInt) | pid)",
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + ((fLSCp + fIntp) | pid)",
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + ((uLSC + uInt) | pid)",
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (fLSCp | pid)",
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (uLSC | pid)",
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (fIntp | pid)",
+  # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (uInt | pid)",
+  # "uLSC * fLSCp + uInt * fIntp + (1 | pid)",
+  # "uLSC * uInt + fLSCp * fIntp + (1 | pid)",
+  # "uLSC + uInt + fLSCp + fIntp + uLSC:fIntp + fLSCp:uInt + (1 | pid)",
+  # "uLSC + fLSCp + uInt + fIntp + uLSC:fLSCp + uInt:fIntp + uLSC:uInt + fLSCp:fIntp + uLSC:fIntp + fLSCp:uInt + (1 | pid)",
 
   # Supplementary analysis
 
   # change in complexity
   # "chLSC + chInt + (1 | pid)",
   # "avgchLSC + avgchInt + (1 | pid)",
-  # "uLSC + uInt + fLSCpermutationfull + fIntpermutationfull + chLSC + chInt + (1 | pid)",
-  # "uLSC + uInt + fLSCpermutationfull + fIntpermutationfull + avgchLSC + avgchInt + (1 | pid)",
+  # "uLSC + uInt + fLSCp + fIntp + chLSC + chInt + (1 | pid)",
+  # "uLSC + uInt + fLSCp + fIntp + avgchLSC + avgchInt + (1 | pid)",
 
   # quadratic effects
-  "uLSCsq + uIntsq + fLSCpermutationsq + fIntpermutationsq + (1 | pid)",
-  "uLSCsq + fLSCpermutationsq + uIntsq + fIntpermutationsq + uLSC:fLSCpermutation + uInt:fIntpermutation + (1 | pid)",
-  "uLSCsq + uIntsq + fLSCpermutationsq + fIntpermutationsq + uLSC:fLSCpermutation + uInt:fIntpermutation + (1 | pid)", # L^2 + I^2
-  "(uLSCsq + fLSCpermutationsq + uLSC:fLSCpermutation) + (uIntsq + fIntpermutationsq + uInt:fIntpermutation) + (uLSC + fLSCpermutation):(uInt + fIntpermutation) + (1 | pid)", # (L + I)^2
-  "uLSC + fLSCpermutation + uInt + fIntpermutation + uLSCsq + uIntsq + fLSCpermutationsq + fIntpermutationsq + (1 | pid)", # L + I + L^2 + I^2 - interactions
-  "uLSC + fLSCpermutation + uInt + fIntpermutation + uLSCsq + uIntsq + fLSCpermutationsq + fIntpermutationsq + uLSC:fLSCpermutation + uInt:fIntpermutation + (1 | pid)", # best = L + I + L^2 + I^2
-  "uLSC + fLSCpermutation + uInt + fIntpermutation + uLSCsq + uIntsq + fLSCpermutationsq + fIntpermutationsq + uLSC:fLSCpermutation + uInt:fIntpermutation + uLSC:uInt + fLSCpermutation:fIntpermutation + (1 | pid)",
-  "uLSC + fLSCpermutation + uInt + fIntpermutation + uLSCsq + uIntsq + fLSCpermutationsq + fIntpermutationsq + uLSC:fLSCpermutation + uInt:fIntpermutation + uLSC:uInt + fLSCpermutation:fIntpermutation + uLSC:fIntpermutation + uInt:fLSCpermutation + (1 | pid)" # L + I + (L + I)^2
 )
 
 # Save all results to model_fits/Table_3_mixedeffects.csv
@@ -223,9 +206,7 @@ models <- list(
 # Plots saved to ./plots/
 {
   
-  bestformula <- "num_clicks ~ fLSCpermutation + fIntpermutation + uLSC:fLSCpermutation + uInt:fIntpermutation + (1 | pid)"
-  # bestformula <- "num_clicks ~ fLSCpermutation + fIntpermutation + uLSC:fLSCpermutation + uInt:fIntpermutation + (1 | pid)"
-
+  bestformula <- "num_clicks ~ fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (1 | pid)"
 
   f <- lmer(bestformula, data = data,
   control = lmerControl(optimizer = "nloptwrap"))
