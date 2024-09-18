@@ -71,22 +71,23 @@ ggCaterpillar <-
 
 # Analysis function
 modelanalysis <-
-  function(num_folds, models, data_train_folds,
-           data_test_folds, to_print, to_plot, fullformula) {
+  function(num_folds, models, models_lm, data_train_folds,
+           data_test_folds, to_print, to_plot, fullformula, num_terms, is_interaction) {
     # This function performs all analyses on the model and
     # returns all performance metrics
     # Arguements:
     # num_folds: number of CV folds
     # models - array of lmer models on each fold
+    # models_lm - array of lm models on each fold
     # data_train_folds - ground truth train data for each fold
     # data_test_folds - ground truth test data for each fold
     # to_print - logical - indicates if metrics need to be printed
     #   (TRUE means yes)
     # to_plot - logical - indicates if plots should be made (TRUE means yes)
 
-    VIFs <- numeric(num_folds)
     AICs <- numeric(num_folds)
     BICs <- numeric(num_folds)
+    VIFs <- numeric(num_folds)
     rsqtrains <- numeric(num_folds)
     rsqtests <- numeric(num_folds)
     RMSEtrains <- numeric(num_folds)
@@ -96,6 +97,20 @@ modelanalysis <-
 
       AICs[x] <- AIC(models[[x]])
       BICs[x] <- BIC(models[[x]])
+      if (num_terms >= 2)
+      {
+        gvif_values <- vif(models_lm[[x]], type = 'predictor')
+
+        if (is.vector(gvif_values))   # no interaction terms
+        {
+          VIFs[x] <- max(gvif_values)
+        }
+
+        else                          # interaction terms
+        {
+          VIFs[x] <- max(gvif_values[, "GVIF"]^(1 / (2 * gvif_values[, "Df"])))
+        }
+      }
 
       rsqtrains[x] <- cor(predict(models[[x]],
                                   data_train_folds[[x]]),
@@ -111,6 +126,10 @@ modelanalysis <-
 
     mean_aic <- mean(AICs)
     mean_bic <- mean(BICs)
+    if (num_terms >= 2)
+    {
+      mean_vif <- mean(VIFs)
+    }
     var_aic_bic <- var(AICs)
     mean_rsq_train <- mean(rsqtrains)
     var_rsq_train <- var(rsqtrains)
@@ -129,6 +148,11 @@ modelanalysis <-
       print(noquote(paste("Mean BIC =", mean_bic)))
       print(noquote(paste("Var AIC, BIC =", var_aic_bic)))
 
+      if (num_terms >= 2)
+      {
+        print(noquote(paste("Mean VIF =", mean_vif)))
+      }
+
       print(noquote(paste("Mean R^2 train =", mean_rsq_train)))
       print(noquote(paste("Var R^2 train =", var_rsq_train)))
       print(noquote(paste("Mean R^2 test =", mean_rsq_test)))
@@ -146,13 +170,19 @@ modelanalysis <-
 
     metrics1 <- c(mean_aic, mean_bic, var_aic_bic)
     metrics1 <- round(metrics1, digits = 1)
-    metrics2 <- c(mean_rsq_train, var_rsq_train, mean_rsq_test,
+
+    if (num_terms < 2)
+    {
+      mean_vif <- "NA"
+    }
+    metrics2 <- c(mean_vif)
+    metrics3 <- c(mean_rsq_train, var_rsq_train, mean_rsq_test,
                   var_rsq_test, mean_rmse_train, var_rmse_train,
                   mean_rmse_test, var_rmse_test)
-    metrics2 <- signif(metrics2, digits = 4)
+    metrics3 <- signif(metrics3, digits = 4)
 
     # returns all metrics
-    return(c(metrics1, metrics2))
+    return(c(metrics1, metrics2, metrics3))
   }
 
 make_plots <- function(model, data_train_fold, data_test_fold) {

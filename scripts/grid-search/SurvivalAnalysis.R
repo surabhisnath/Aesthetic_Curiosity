@@ -36,7 +36,7 @@
 # Setup
 {
     # Read data
-    data = read.csv("../../csvs/grid-search/click_data_withoutliers.csv")
+    data = read.csv("../../csvs/grid-search/click_data_reevaluatedforreproduction.csv")
     # data = read.csv("utils/subject_click_info_coxreg_data23.csv")
 
     # Scale all variables in the data
@@ -44,9 +44,10 @@
         as.numeric(scale(x))
     }
 
-    data$Subject <- factor(data$Subject)
+    data$pid <- factor(data$pid)
     data$click_id <- as.numeric(data$click_id)
-    data$click_id_minus1 <- as.numeric(data$click_id - 1)
+    data$pattern_id <- factor(data$pattern_id)
+    data$time_taken <- my_scale(data$time_taken)
     data$uLSC <- my_scale(data$underlying_SC)
     data$uLSCsq <- my_scale(data$underlying_SC ^ 2)
     data$uInt <- my_scale(data$underlying_intricacy)
@@ -60,6 +61,7 @@
     data$avgchLSC <- my_scale(data$avg_change_in_SC)
     data$avgchInt <- my_scale(data$avg_change_in_intricacy)
 }
+
 
 {
     selected_data <- data[, c("uLSC", "cLSC", "uInt", "cInt", "uLSCsq", "cLSCsq", "uIntsq", "cIntsq", "chLSC", "chInt", "avgchLSC", "avgchInt")]
@@ -96,7 +98,7 @@
   num_folds <- 3
 
   folds <- data %>%
-  group_by(Subject) %>%
+  group_by(pid) %>%
   modelr::crossv_kfold(k = num_folds)
 
   temp_train_1 <- folds$train$`1`

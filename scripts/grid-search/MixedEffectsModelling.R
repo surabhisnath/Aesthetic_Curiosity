@@ -45,24 +45,30 @@
   data$grid_id <- factor(data$grid_id)
   data$pattern <- factor(data$pattern_id)
 
+  data$uLSCsq <- my_scale(data$uLSC ^ 2)
   data$uLSC <- my_scale(data$uLSC)
   data$uLSCr <- my_scale(data$uLSCr)
+  data$uLSCpsq <- my_scale(data$uLSCp ^ 2)
   data$uLSCp <- my_scale(data$uLSCp)
   data$uLSCdiffr <- my_scale(data$uLSCdiffr)
   data$uLSCdiffp <- my_scale(data$uLSCdiffp)
   
+  data$uIntsq <- my_scale(data$uInt ^ 2)
   data$uInt <- my_scale(data$uInt)
   data$uIntr <- my_scale(data$uIntr)
+  data$uIntpsq <- my_scale(data$uIntp ^ 2)
   data$uIntp <- my_scale(data$uIntp)
   data$uIntdiffr <- my_scale(data$uIntdiffr)
   data$uIntdiffp <- my_scale(data$uIntdiffp)
   
   data$fLSCr <- my_scale(data$fLSCr)
   data$fLSCpold <- my_scale(data$fLSCpold)
+  data$fLSCpsq <- my_scale(data$fLSCp ^ 2)
   data$fLSCp <- my_scale(data$fLSCp)
   
   data$fIntr <- my_scale(data$fIntr)
   data$fIntpold <- my_scale(data$fIntpold)
+  data$fIntpsq <- my_scale(data$fIntp ^ 2)
   data$fIntp <- my_scale(data$fIntp)
 }
 
@@ -101,30 +107,29 @@ models <- list(
 
   # "uLSC + (1 | pid)",
   # "uLSCr + (1 | pid)",
-  # "uLSCp + (1 | pid)",
+  "uLSCp + (1 | pid)",
   # "uLSCdiffr + (1 | pid)",
   # "uLSCdiffp + (1 | pid)",
 
   # "uInt + (1 | pid)",
   # "uIntr + (1 | pid)",
-  # "uIntp + (1 | pid)",
+  "uIntp + (1 | pid)",
   # "uIntdiffr + (1 | pid)",
   # "uIntdiffp + (1 | pid)",
 
   # "fLSCpold + (1 | pid)",
-  # "fLSCp + (1 | pid)",
+  "fLSCp + (1 | pid)",
   # "fLSCr + (1 | pid)",
 
   # "fIntpold + (1 | pid)",
-  # "fIntp + (1 | pid)",
+  "fIntp + (1 | pid)",
   # "fIntr + (1 | pid)",
 
-  # "uLSC + uInt + (1 | pid)",
-  # "fLSCp + fIntp + (1 | pid)",
-  # "uLSC + fLSCp + (1 | pid)",
-  # "uInt + fIntp + (1 | pid)",
+  "uLSCp + uIntp + (1 | pid)",
+  "fLSCp + fIntp + (1 | pid)",
 
-  # "uLSC + uInt + fLSCp + fIntp + (1 | pid)",
+  "uLSCp + uIntp + fLSCp + fIntp + (1 | pid)",
+  "fLSCp + fLSCpsq + fIntp + fIntpsq + (1 | pid)",
   
   # "uLSC * fLSCp + (1 | pid)",
   # "uInt * fIntp + (1 | pid)",
@@ -138,6 +143,7 @@ models <- list(
   "fLSCpold + fIntpold + uLSCdiffr:fLSCpold + uIntdiffr:fIntpold + (1 | pid)",
 
   "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (1 | pid)",
+  "fLSCp + fIntp + uLSCp + uIntp + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
   "fLSCp + fIntp + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
   "fLSCp + fIntp + uLSCr:fLSCp + uIntr:fIntp + (1 | pid)",
   "fLSCp + fIntp + uLSCdiffp:fLSCp + uIntdiffp:fIntp + (1 | pid)",
@@ -174,27 +180,34 @@ models <- list(
 
 # Save all results to model_fits/Table_3_mixedeffects.csv
 {
-  df <- data.frame(matrix(ncol = 13, nrow = 0, dimnames =
+  df <- data.frame(matrix(ncol = 14, nrow = 0, dimnames =
   list(NULL, c("Id", "model", "AIC", "BIC", "AIC/BIC Var",
-  "Rsq train mean", "Rsq train var", "Rsq test mean", "Rsq test var",
+  "VIF", "Rsq train mean", "Rsq train var", "Rsq test mean", "Rsq test var",
   "RMSE train mean", "RMSE train var", "RMSE test mean", "RMSE test var"))))
 
   id <- 0
-  for (formula in models) {
+  for (formula in models) 
+  {
     id <- id + 1
     fullformula <- paste("num_clicks ~", formula)
     f1 <- lmer(fullformula, data = data_train_fold1,
     control = lmerControl(optimizer = "bobyqa"))
+    f1_lm <- lm(sub("\\+[^+]*$", "", fullformula), data = data_train_fold1)
+    
     f2 <- lmer(fullformula, data = data_train_fold2,
     control = lmerControl(optimizer = "bobyqa"))
+    f2_lm <- lm(sub("\\+[^+]*$", "", fullformula), data = data_train_fold2)
+
     f3 <- lmer(fullformula, data = data_train_fold3,
     control = lmerControl(optimizer = "bobyqa"))
+    f3_lm <- lm(sub("\\+[^+]*$", "", fullformula), data = data_train_fold3)
 
+    print(fullformula)
     # Analyse model fit
     metrics <- modelanalysis(num_folds,
-    list(f1, f2, f3), list(data_train_fold1, data_train_fold2,
+    list(f1, f2, f3), list(f1_lm, f2_lm, f3_lm), list(data_train_fold1, data_train_fold2,
     data_train_fold3), list(data_test_fold1, data_test_fold2, data_test_fold3),
-    FALSE, FALSE, fullformula) # set second last param to TRUE for printing
+    FALSE, FALSE, fullformula, length(gregexpr("\\+", fullformula)[[1]]), grepl(":", fullformula) ) # set second last param to TRUE for printing
     df[nrow(df) + 1, ] <- c(id, noquote(fullformula), metrics)
   }
 
@@ -206,7 +219,7 @@ models <- list(
 # Plots saved to ./plots/
 {
   
-  bestformula <- "num_clicks ~ fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (1 | pid)"
+  bestformula <- "num_clicks ~ fLSCp + fLSCpsq + fIntp + fIntpsq + (1 | pid)"
 
   f <- lmer(bestformula, data = data,
   control = lmerControl(optimizer = "nloptwrap"))
@@ -233,15 +246,12 @@ models <- list(
 
 # plot interactions - Figure 3c,d
 {
-  # mean_value <- mean(data$uLSC, na.rm = TRUE)
-  # sd_value <- sd(data$uLSC, na.rm = TRUE)
-  # modx_values <- c(mean_value - 2 * sd_value, mean_value, mean_value + 2 * sd_value)
   p <- interact_plot(f,
-      pred = fLSCpermutation, modx = uLSC, modx.values = c(-1, 0, 1), modx.labels = c("-1 SD", "Mean", "+1 SD"),
+      pred = fLSCp, modx = uLSCp, modx.values = c(-1, 0, 1), modx.labels = c("-1 SD", "Mean", "+1 SD"),
       interval = TRUE,
-      x.label = "fLSCpermutation", y.label = "Number of Clicks",
-      legend.main = "uLSC", colors = "seagreen",
-      xlim = c(min(data$fLSCpermutation), max(data$fLSCpermutation)),
+      x.label = "fLSCp", y.label = "Number of Clicks",
+      legend.main = "uLSCp", colors = "seagreen",
+      xlim = c(min(data$fLSCp), max(data$fLSCp)),
       ylim = c(min(data$num_clicks), max(data$num_clicks))
   ) + theme(
       axis.title = element_text(family = "serif", size = 44),
@@ -252,12 +262,12 @@ models <- list(
   ) + scale_y_continuous(breaks = seq(0, 80, by = 20), limits = c(0, 80)) + scale_x_continuous(breaks = seq(-6, 3, by = 2), limits = c(-6, 3))
 
   # Figure 3c
-  ggsave(filename = "plots/uLSC_fLSCpermutation_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
+  ggsave(filename = "plots/uLSCp_fLSCp_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
 
   p <- interact_plot(f,
-      pred = fIntpermutation, modx = uInt, interval = TRUE,
-      x.label = "fIntpermutation", y.label = "Number of Clicks",
-      legend.main = "uInt", colors = "seagreen"
+      pred = fIntp, modx = uIntp, interval = TRUE,
+      x.label = "fIntp", y.label = "Number of Clicks",
+      legend.main = "uIntp", colors = "seagreen"
   ) + theme(
       axis.title = element_text(family = "serif", size = 44),
       axis.text = element_text(family = "serif", size = 26),
@@ -267,7 +277,7 @@ models <- list(
   ) + scale_y_continuous(breaks = seq(0, 50, by = 20), limits = c(0, 50)) + scale_x_continuous(breaks = seq(-2, 8, by = 2), limits = c(-2, 8))
 
   # Figure 3d
-  ggsave(filename = "plots/uInt_fIntpermutation_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
+  ggsave(filename = "plots/uIntp_fIntp_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
 }
 
 # Find extrema patterns
