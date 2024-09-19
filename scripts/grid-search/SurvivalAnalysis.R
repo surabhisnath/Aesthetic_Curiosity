@@ -48,18 +48,14 @@
     data$click_id <- as.numeric(data$click_id)
     data$pattern_id <- factor(data$pattern_id)
     data$time_taken <- my_scale(data$time_taken)
-    data$uLSC <- my_scale(data$underlying_SC)
-    data$uLSCsq <- my_scale(data$underlying_SC ^ 2)
-    data$uInt <- my_scale(data$underlying_intricacy)
-    data$uIntsq <- my_scale(data$underlying_intricacy ^ 2)
-    data$cLSC <- my_scale(data$current_SC)
-    data$cLSCsq <- my_scale(data$current_SC ^ 2)
-    data$cInt <- my_scale(data$current_intricacy)
-    data$cIntsq <- my_scale(data$current_intricacy ^ 2)
-    data$chLSC <- my_scale(data$current_change_in_SC)
-    data$chInt <- my_scale(data$current_change_in_intricacy)
-    data$avgchLSC <- my_scale(data$avg_change_in_SC)
-    data$avgchInt <- my_scale(data$avg_change_in_intricacy)
+    data$uLSCsq <- my_scale(data$uLSC ^ 2)
+    data$uLSC <- my_scale(data$uLSC)
+    data$uIntsq <- my_scale(data$uInt ^ 2)
+    data$uInt <- my_scale(data$uInt)
+    data$cLSCsq <- my_scale(data$cLSCp1 ^ 2)
+    data$cLSC <- my_scale(data$cLSCp1)
+    data$cIntsq <- my_scale(data$cIntp1 ^ 2)
+    data$cInt <- my_scale(data$cIntp1)
 }
 
 
@@ -214,7 +210,7 @@ models <- list(
 {
     # bestformula <- as.formula("Surv(click_id, move_on) ~ uLSC * cLSC + uInt * cInt + Subject") # Subject excluded for reliability of estimates 
 
-    bestformula <- as.formula("Surv(click_id, move_on) ~ cLSC + cInt + uLSC:cLSC + uInt:cInt + Subject")
+    bestformula <- as.formula("Surv(click_id, move_on) ~ cLSC + cInt + uLSC:cLSC + uInt:cInt + pid")
 
     model <- coxph(bestformula, data = data)
 
@@ -238,61 +234,87 @@ models <- list(
     write.csv(combined_data, file = "model_fits/Table_2_coeff_survival.csv", row.names = FALSE)
 }
 
+ggcoxzph(cox.zph(cox_fit))
+
+{
+    km_fit <- survfit(Surv(click_id, move_on) ~ 1, data = data_train_fold1)
+    bestformula <- as.formula("Surv(click_id, move_on) ~ cLSC + cInt + uLSC + uInt + uLSC:cLSC + uInt:cInt + pid")
+    cox_fit <- coxph(bestformula, data = data_train_fold1)
+
+    km_plot <- ggsurvplot(km_fit, data = data_train_fold1, conf.int = FALSE, legend = "none",
+                      ggtheme = theme_minimal(), risk.table = FALSE, color = "#2E9FDF")
+
+    # Create Cox model predicted survival curve plot
+    cox_plot <- ggsurvplot(survfit(cox_fit, data = data_train_fold1), data = data_train_fold1, conf.int = FALSE, 
+                        legend.title = "Model", legend.labs = "Cox Model", 
+                        ggtheme = theme_minimal(), risk.table = FALSE, color = "#e74900")
+
+    # Combine the two plots using ggplot2
+    combined_plot <- km_plot$plot +
+    geom_line(data = cox_plot$plot$data, aes(x = time, y = surv, color = "Cox Model")) +
+    scale_color_manual(values = c("Kaplan-Meier" = "#2E9FDF", "Cox Model" = "#e74900")) +
+    labs(color = "Model") +
+    theme(legend.position = "top")
+
+    # Display the combined plot
+    print(combined_plot)
+}
+
 
 # Plot survival curves keeping all but one or two (for interactions) variables constant - Figure 2
 {
     # cLSC manipulation - Figure 2a
     newdata <- data.frame(
-        cLSC = seq(mean(data$cLSC, na.rm = TRUE) - 2*sd(data$cLSC, na.rm = TRUE), mean(data$cLSC, na.rm = TRUE) + 2*sd(data$cLSC, na.rm = TRUE), length.out = 3),
-        # uLSC = mean(data$uLSC, na.rm = TRUE),
-        # uInt = mean(data$uInt, na.rm = TRUE),
+        cLSC = seq(mean(data$cLSC, na.rm = TRUE) - 1*sd(data$cLSC, na.rm = TRUE), mean(data$cLSC, na.rm = TRUE) + 1*sd(data$cLSC, na.rm = TRUE), length.out = 3),
+        uLSC = mean(data$uLSC, na.rm = TRUE),
+        uInt = mean(data$uInt, na.rm = TRUE),
         cInt = mean(data$cInt, na.rm = TRUE),
-        Subject = factor(21)
+        pid = factor(21)
         )
     var <- "cLSC"
     filename <- paste0(var, "_survival_curve")
-    survival_prob(model, newdata, filename, var, c("- 2SD", "mean", "+ 2SD"), c("salmon", "red", "darkred"))
+    survival_prob(model, newdata, filename, var, c("- 1SD", "mean", "+ 1SD"), c("salmon", "red", "darkred"))
 
     # cInt manipulation - not reported in paper
     newdata <- data.frame(
-        cInt = seq(mean(data$cInt, na.rm = TRUE) - 2*sd(data$cInt, na.rm = TRUE), mean(data$cInt, na.rm = TRUE) + 2*sd(data$cInt, na.rm = TRUE), length.out = 3),
-        # uLSC = mean(data$uLSC, na.rm = TRUE),
+        cInt = seq(mean(data$cInt, na.rm = TRUE) - 1*sd(data$cInt, na.rm = TRUE), mean(data$cInt, na.rm = TRUE) + 1*sd(data$cInt, na.rm = TRUE), length.out = 3),
+        uLSC = mean(data$uLSC, na.rm = TRUE),
         cLSC = mean(data$cLSC, na.rm = TRUE),
-        # uInt = mean(data$uInt, na.rm = TRUE),
-        Subject = factor(21)
+        uInt = mean(data$uInt, na.rm = TRUE),
+        pid = factor(21)
         )
     var <- "cInt"
     filename <- paste0(var, "_survival_curve")
-    # survival_prob(model, newdata, filename, var, c("- 2SD", "mean", "+ 2SD"), c("gold", "darkorange", "chocolate"))
-    survival_prob(model, newdata, filename, var, c("- 2SD", "mean", "+ 2SD"), c("tan", "sienna", "brown"))
+    # survival_prob(model, newdata, filename, var, c("- 1SD", "mean", "+ 1SD"), c("gold", "darkorange", "chocolate"))
+    survival_prob(model, newdata, filename, var, c("- 1SD", "mean", "+ 1SD"), c("tan", "sienna", "brown"))
 
 
     # uLSC x cLSC manipulation - Figure 2c
-    v1 <- seq(mean(data$uLSC, na.rm = TRUE) - 2*sd(data$uLSC, na.rm = TRUE), mean(data$uLSC, na.rm = TRUE) + 2*sd(data$uLSC, na.rm = TRUE), length.out = 2)  # Values of uLSC for the three scenarios
-    v2 <- seq(mean(data$cLSC, na.rm = TRUE) - 2*sd(data$cLSC, na.rm = TRUE), mean(data$cLSC, na.rm = TRUE) + 2*sd(data$cLSC, na.rm = TRUE), length.out = 2)   # Values of cLSC for the three scenarios
+    v1 <- seq(mean(data$uLSC, na.rm = TRUE) - 1*sd(data$uLSC, na.rm = TRUE), mean(data$uLSC, na.rm = TRUE) + 1*sd(data$uLSC, na.rm = TRUE), length.out = 2)  # Values of uLSC for the three scenarios
+    v2 <- seq(mean(data$cLSC, na.rm = TRUE) - 1*sd(data$cLSC, na.rm = TRUE), mean(data$cLSC, na.rm = TRUE) + 1*sd(data$cLSC, na.rm = TRUE), length.out = 2)   # Values of cLSC for the three scenarios
     newdata <- expand.grid(
         uLSC = v1,
         cLSC = v2
     )
     newdata$uInt <- mean(data$uInt, na.rm = TRUE)
     newdata$cInt <- mean(data$cInt, na.rm = TRUE)
-    newdata$Subject <- factor(21)
+    newdata$pid <- factor(21)
     var <- "uLSC:cLSC"
     filename <- paste0(var, "_survival_curve")
     survival_prob(model, newdata, filename, var, c("1", "2", "3", "4"), c("lightgreen", "darkseagreen", "darkcyan", "slategray"))
 
 
     # Participant manipulation - Figure 2d
-    unique_subjects <- unique(data$Subject)
+    unique_subjects <- unique(data$pid)
     indices <- c(1, 12, 21)
     sampled_subjects <- unique_subjects[indices]
     newdata_list <- lapply(sampled_subjects, function(subj) {
     data.frame(
-        # uLSC = mean(data$uLSC, na.rm = TRUE),
+        uLSC = mean(data$uLSC, na.rm = TRUE),
         cLSC = mean(data$cLSC, na.rm = TRUE),
-        # uInt = mean(data$uInt, na.rm = TRUE),
+        uInt = mean(data$uInt, na.rm = TRUE),
         cInt = mean(data$cInt, na.rm = TRUE),
-        Subject = factor(subj, levels = levels(unique_subjects[indices]))
+        pid = factor(subj, levels = levels(unique_subjects[indices]))
     )
     })
     newdata <- bind_rows(newdata_list)

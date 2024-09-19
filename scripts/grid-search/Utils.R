@@ -90,6 +90,8 @@ modelanalysis <-
     VIFs <- numeric(num_folds)
     rsqtrains <- numeric(num_folds)
     rsqtests <- numeric(num_folds)
+    residual_sums_trains = numeric(num_folds)
+    residual_sums_tests = numeric(num_folds)
     RMSEtrains <- numeric(num_folds)
     RMSEtests <- numeric(num_folds)
 
@@ -118,6 +120,9 @@ modelanalysis <-
       rsqtests[x] <- cor(predict(models[[x]],
                                  data_test_folds[[x]]),
                          data_test_folds[[x]]$num_clicks)^2
+      residual_sums_trains[x] <- sum(residuals(models[[x]]))
+      residual_sums_tests[x] <- sum(predict(models[[x]], data_test_folds[[x]])
+                   - data_test_folds[[x]]$num_clicks)
       RMSEtrains[x] <- sqrt(mean(residuals(models[[x]])^2))
       RMSEtests[x] <- 
         sqrt(mean((predict(models[[x]], data_test_folds[[x]])
@@ -135,6 +140,8 @@ modelanalysis <-
     var_rsq_train <- var(rsqtrains)
     mean_rsq_test <- mean(rsqtests)
     var_rsq_test <- var(rsqtests)
+    mean_residuals_sum_train <- mean(residual_sums_trains)
+    mean_residuals_sum_test <- mean(residual_sums_tests)
     mean_rmse_train <- mean(RMSEtrains)
     var_rmse_train <- var(RMSEtrains)
     mean_rmse_test <- mean(RMSEtests)
@@ -158,6 +165,8 @@ modelanalysis <-
       print(noquote(paste("Mean R^2 test =", mean_rsq_test)))
       print(noquote(paste("Var R^2 test =", var_rsq_test)))
 
+      print(noquote(paste("Mean residuals sum train =", mean_residuals_sum_train)))
+      print(noquote(paste("Mean residuals sum test =", mean_residuals_sum_test)))
       print(noquote(paste("Mean train RMSE =", mean_rmse_train)))
       print(noquote(paste("Var train RMSE =", var_rmse_train)))
       print(noquote(paste("Mean test RMSE =", mean_rmse_test)))
@@ -177,7 +186,8 @@ modelanalysis <-
     }
     metrics2 <- c(mean_vif)
     metrics3 <- c(mean_rsq_train, var_rsq_train, mean_rsq_test,
-                  var_rsq_test, mean_rmse_train, var_rmse_train,
+                  var_rsq_test, mean_residuals_sum_train, mean_residuals_sum_test,
+                  mean_rmse_train, var_rmse_train,
                   mean_rmse_test, var_rmse_test)
     metrics3 <- signif(metrics3, digits = 4)
 

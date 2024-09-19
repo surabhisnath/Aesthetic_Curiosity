@@ -34,7 +34,16 @@
 # Setup
 {
   # Read data
-  data <- read.csv("../../csvs/grid-search/grid_data_reevaluatedforreproduction.csv")
+  data <- read.csv("../../csvs/grid-search/grid_data_reevaluatedforreproduction.csv", colClasses = c("final_grid" = "character"))
+  
+  # data <- subset(data, num_clicks != 81)
+  # data <- data %>%
+  # group_by(pid) %>%    # Group by the subject identifier
+  # filter(n() > 3) %>%        # Keep only groups with 3 or more rows
+  # ungroup()
+
+  # unique_pids <- unique(data$pid)
+  # print(length(unique_pids))
 
   # Scale all variables in the data
   my_scale <- function(x) {
@@ -44,6 +53,7 @@
   data$pid <- factor(data$pid)
   data$grid_id <- factor(data$grid_id)
   data$pattern <- factor(data$pattern_id)
+  data$final_grid <- as.character(data$final_grid)
 
   data$uLSCsq <- my_scale(data$uLSC ^ 2)
   data$uLSC <- my_scale(data$uLSC)
@@ -62,14 +72,46 @@
   data$uIntdiffp <- my_scale(data$uIntdiffp)
   
   data$fLSCr <- my_scale(data$fLSCr)
+  data$fLSCpoldsq <- my_scale(data$fLSCpold ^ 2)
   data$fLSCpold <- my_scale(data$fLSCpold)
   data$fLSCpsq <- my_scale(data$fLSCp ^ 2)
   data$fLSCp <- my_scale(data$fLSCp)
   
   data$fIntr <- my_scale(data$fIntr)
+  data$fIntpoldsq <- my_scale(data$fIntpold ^ 2)
   data$fIntpold <- my_scale(data$fIntpold)
   data$fIntpsq <- my_scale(data$fIntp ^ 2)
   data$fIntp <- my_scale(data$fIntp)
+}
+
+{
+    selected_data <- data[, c("num_clicks", "fLSCp", "fIntp", "fLSCpsq", "fIntpsq")]
+    correlation_matrix <- cor(selected_data)
+    colnames(correlation_matrix) <- c("num_clicks", "fLSCp", "fIntp", "fLSCpsq", "fIntpsq") # Rename columns
+    rownames(correlation_matrix) <- c("num_clicks", "fLSCp", "fIntp", "fLSCpsq", "fIntpsq") # Rename columns
+    correlation_matrix[lower.tri(correlation_matrix)] <- NA
+    pdf(file = "plots/grid_level_correlations.pdf", width = 12, height = 12)
+    par(mar=c(7,7,2,2), cex = 1.3, family="serif")
+
+    # Plot the heatmap
+    image(1:ncol(correlation_matrix), 1:nrow(correlation_matrix), t(correlation_matrix), 
+        col = colorRampPalette(c("blue", "white", "red"))(20), axes = FALSE, xlab = "", ylab = "")
+
+    # Add text annotations for the correlation values
+    for (i in 1:nrow(correlation_matrix)) {
+        for (j in 1:ncol(correlation_matrix)) {
+            if (!is.na(correlation_matrix[i, j])) {
+                text(j, i, round(correlation_matrix[i, j], 2), cex = 1.3)
+            }
+        }
+    }
+
+    # Customize the row and column names
+    axis(1, at = 1:ncol(correlation_matrix), labels = colnames(correlation_matrix), las = 2, cex.axis = 1.4, family = "serif")
+    axis(2, at = 1:nrow(correlation_matrix), labels = rownames(correlation_matrix), las = 2, cex.axis = 1.4, family = "serif")
+
+    # save correlation plot
+    dev.off()
 }
 
 # Split the data into 3 stratified folds
@@ -99,6 +141,8 @@
   data_test_fold3 <- data[temp_test_3$idx, ]
 }
 
+
+
 # Mixed Effects Models
 models <- list(
   "1 + (1 | pid)",
@@ -127,33 +171,43 @@ models <- list(
 
   "uLSCp + uIntp + (1 | pid)",
   "fLSCp + fIntp + (1 | pid)",
+  "fLSCp + fIntp + (fIntp | pid)",
 
   "uLSCp + uIntp + fLSCp + fIntp + (1 | pid)",
   "fLSCp + fLSCpsq + fIntp + fIntpsq + (1 | pid)",
+  "fLSCp * fLSCpsq + fIntp + fIntpsq + (1 | pid)",
+  "fLSCpold + fLSCpoldsq + fIntpold + fIntpoldsq + (1 | pid)",
+  "uLSCp + uLSCpsq + uIntp + uIntpsq + (1 | pid)",
   
   # "uLSC * fLSCp + (1 | pid)",
   # "uInt * fIntp + (1 | pid)",
   # "uLSC * uInt + (1 | pid)",
   # "fLSCp * fIntp + (1 | pid)",
   
-  "fLSCpold + fIntpold + uLSC:fLSCpold + uInt:fIntpold + (1 | pid)",
-  "fLSCpold + fIntpold + uLSCp:fLSCpold + uIntp:fIntpold + (1 | pid)",
-  "fLSCpold + fIntpold + uLSCr:fLSCpold + uIntr:fIntpold + (1 | pid)",
-  "fLSCpold + fIntpold + uLSCdiffp:fLSCpold + uIntdiffp:fIntpold + (1 | pid)",
-  "fLSCpold + fIntpold + uLSCdiffr:fLSCpold + uIntdiffr:fIntpold + (1 | pid)",
+  # "fLSCpold + fIntpold + uLSC:fLSCpold + uInt:fIntpold + (1 | pid)",
+  # "fLSCpold + fIntpold + uLSCp:fLSCpold + uIntp:fIntpold + (1 | pid)",
+  # "fLSCpold + fIntpold + uLSCr:fLSCpold + uIntr:fIntpold + (1 | pid)",
+  # "fLSCpold + fIntpold + uLSCdiffp:fLSCpold + uIntdiffp:fIntpold + (1 | pid)",
+  # "fLSCpold + fIntpold + uLSCdiffr:fLSCpold + uIntdiffr:fIntpold + (1 | pid)",
 
-  "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + (1 | pid)",
+  "fLSCp * fIntp + (1|pid)",
+  "fLSCp * fIntp + uLSC * uInt + (1|pid)",
   "fLSCp + fIntp + uLSCp + uIntp + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
-  "fLSCp + fIntp + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
-  "fLSCp + fIntp + uLSCr:fLSCp + uIntr:fIntp + (1 | pid)",
-  "fLSCp + fIntp + uLSCdiffp:fLSCp + uIntdiffp:fIntp + (1 | pid)",
-  "fLSCp + fIntp + uLSCdiffr:fLSCp + uIntdiffr:fIntp + (1 | pid)",
+  # "fLSCp + fIntp + fLSCpsq + fIntpsq + uLSCp + uIntp + uLSCpsq + uIntpsq + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
+  "fLSCp + fIntp + uLSC + uInt + uLSC:fLSCp + uInt:fIntp + (1 | pid)",
+  "fLSCpold + fIntpold + uLSCp + uIntp + uLSCp:fLSCpold + uIntp:fIntpold + (1 | pid)"
 
-  "fLSCr + fIntr + uLSC:fLSCr + uInt:fIntr + (1 | pid)",
-  "fLSCr + fIntr + uLSCp:fLSCr + uIntp:fIntr + (1 | pid)",
-  "fLSCr + fIntr + uLSCr:fLSCr + uIntr:fIntr + (1 | pid)",
-  "fLSCr + fIntr + uLSCdiffp:fLSCr + uIntdiffp:fIntr + (1 | pid)",
-  "fLSCr + fIntr + uLSCdiffr:fLSCr + uIntdiffr:fIntr + (1 | pid)"
+
+  # "fLSCp + fIntp + uLSCp:fLSCp + uIntp:fIntp + (1 | pid)",
+  # "fLSCp + fIntp + uLSCr:fLSCp + uIntr:fIntp + (1 | pid)",
+  # "fLSCp + fIntp + uLSCdiffp:fLSCp + uIntdiffp:fIntp + (1 | pid)",
+  # "fLSCp + fIntp + uLSCdiffr:fLSCp + uIntdiffr:fIntp + (1 | pid)",
+
+  # "fLSCr + fIntr + uLSC:fLSCr + uInt:fIntr + (1 | pid)",
+  # "fLSCr + fIntr + uLSCp:fLSCr + uIntp:fIntr + (1 | pid)",
+  # "fLSCr + fIntr + uLSCr:fLSCr + uIntr:fIntr + (1 | pid)",
+  # "fLSCr + fIntr + uLSCdiffp:fLSCr + uIntdiffp:fIntr + (1 | pid)",
+  # "fLSCr + fIntr + uLSCdiffr:fLSCr + uIntdiffr:fIntr + (1 | pid)"
 
   # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + ((fLSCp + uLSC + fIntp + uInt) | pid)",
   # "fLSCp + fIntp + uLSC:fLSCp + uInt:fIntp + ((fLSCp + fIntp) | pid)",
@@ -180,10 +234,10 @@ models <- list(
 
 # Save all results to model_fits/Table_3_mixedeffects.csv
 {
-  df <- data.frame(matrix(ncol = 14, nrow = 0, dimnames =
+  df <- data.frame(matrix(ncol = 16, nrow = 0, dimnames =
   list(NULL, c("Id", "model", "AIC", "BIC", "AIC/BIC Var",
   "VIF", "Rsq train mean", "Rsq train var", "Rsq test mean", "Rsq test var",
-  "RMSE train mean", "RMSE train var", "RMSE test mean", "RMSE test var"))))
+  "Residual sum train", "Residual sum test", "RMSE train mean", "RMSE train var", "RMSE test mean", "RMSE test var"))))
 
   id <- 0
   for (formula in models) 
@@ -219,9 +273,9 @@ models <- list(
 # Plots saved to ./plots/
 {
   
-  bestformula <- "num_clicks ~ fLSCp + fLSCpsq + fIntp + fIntpsq + (1 | pid)"
+  bestformula <- "num_clicks ~ fLSCp + fLSCpsq + fIntp + fIntpsq + fLSCp:fIntp + (1 | pid)"
 
-  f <- lmer(bestformula, data = data,
+  f <- lmer(bestformula, data = data_train_fold1,
   control = lmerControl(optimizer = "nloptwrap"))
 
   # make and save model vs predictions of train and test - Figure 3a,b
@@ -234,6 +288,8 @@ models <- list(
 
 # Save fixed effects to model_fits/ - Table 4
 {
+  f <- lmer(bestformula, data = data,
+  control = lmerControl(optimizer = "nloptwrap"))
   model_summary <- summary(f)
   coefficients <- fixef(f)
   standard_errors <- sqrt(diag(vcov(f)))
@@ -244,14 +300,21 @@ models <- list(
   write.csv(results_df, file = "model_fits/Table_4_coeff_mixedeffects.csv", row.names = FALSE)
 }
 
+
+{
+  data$predicted_clicks <- predict(f)
+  data$residuals <- residuals(f)
+  failing_patterns <- data[order(-abs(data$residuals)), ]
+  write.csv(head(failing_patterns, 100), "failures.csv", row.names = FALSE)
+}
+
 # plot interactions - Figure 3c,d
 {
   p <- interact_plot(f,
-      pred = fLSCp, modx = uLSCp, modx.values = c(-1, 0, 1), modx.labels = c("-1 SD", "Mean", "+1 SD"),
+      pred = fLSCp, modx = uLSCp, plot.points = FALSE, int.width = 0.95, modx.values = c(-1, 0, 1), modx.labels = c("25th quant", "Median", "75th quant"),
       interval = TRUE,
       x.label = "fLSCp", y.label = "Number of Clicks",
-      legend.main = "uLSCp", colors = "seagreen",
-      xlim = c(min(data$fLSCp), max(data$fLSCp)),
+      legend.main = "uLSCp", colors = "seagreen", add_smooth = TRUE,
       ylim = c(min(data$num_clicks), max(data$num_clicks))
   ) + theme(
       axis.title = element_text(family = "serif", size = 44),
@@ -259,22 +322,22 @@ models <- list(
       legend.text = element_text(family = "serif", size = 30),
       legend.title = element_text(family = "serif", size = 40),
       strip.text = element_text(family = "serif")
-  ) + scale_y_continuous(breaks = seq(0, 80, by = 20), limits = c(0, 80)) + scale_x_continuous(breaks = seq(-6, 3, by = 2), limits = c(-6, 3))
+  ) + scale_y_continuous(breaks = seq(0, 80, by = 20), limits = c(0, 80)) #+ scale_x_continuous(breaks = seq(-1, 1, by = 1), limits = c(-1, 1))
 
   # Figure 3c
   ggsave(filename = "plots/uLSCp_fLSCp_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
 
   p <- interact_plot(f,
-      pred = fIntp, modx = uIntp, interval = TRUE,
+      pred = fIntp, modx = uIntp, interval = TRUE, plot.points = FALSE, int.width = 0.95, modx.values = c(-1, 0, 1), modx.labels = c("25th quant", "Median", "75th quant"),
       x.label = "fIntp", y.label = "Number of Clicks",
-      legend.main = "uIntp", colors = "seagreen"
+      legend.main = "uIntp", colors = "seagreen", add_smooth = TRUE,
   ) + theme(
       axis.title = element_text(family = "serif", size = 44),
       axis.text = element_text(family = "serif", size = 26),
       legend.text = element_text(family = "serif", size = 30),
       legend.title = element_text(family = "serif", size = 44),
       strip.text = element_text(family = "serif")
-  ) + scale_y_continuous(breaks = seq(0, 50, by = 20), limits = c(0, 50)) + scale_x_continuous(breaks = seq(-2, 8, by = 2), limits = c(-2, 8))
+  ) + scale_y_continuous(breaks = seq(0, 80, by = 20), limits = c(0, 80)) #+ scale_x_continuous(breaks = seq(-1, 1, by = 1), limits = c(-1, 1))
 
   # Figure 3d
   ggsave(filename = "plots/uIntp_fIntp_interaction.pdf", plot = p, width = 10, height = 10, units = "in")
